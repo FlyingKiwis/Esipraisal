@@ -18,11 +18,14 @@ class Esipraisal(object):
 
         #Method 1: Orders on market
         hist_avg = await self.__value_from_history(type_id, region_ids)
-        value = await self.__value_from_orders(type_id, region_ids, hist_avg)
+        if hist_avg is None:
+            order_value = None
+        else:
+            order_value = await self.__value_from_orders(type_id, region_ids, hist_avg)
 
-        if value is not None:
+        if order_value is not None:
             app.source = "Market Orders"
-            app.value = value
+            app.value = order_value
             return app
 
         #Method 2: Historical average
