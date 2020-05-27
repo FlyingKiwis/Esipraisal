@@ -98,7 +98,7 @@ class Esipraisal(object):
             if price is None:
                 continue
 
-            if volume < 0:
+            if volume <= 0:
                 continue
 
             prices.append(price)
