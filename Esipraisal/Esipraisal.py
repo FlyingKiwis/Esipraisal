@@ -3,10 +3,9 @@ from Appraisal import Appraisal
 import asyncio
 import numpy as np
 import itertools
-import csv
 
 
-class EsiPyMarket(object):
+class Esipraisal(object):
 
     def __init__(self):
         self.__price_table = None
@@ -222,8 +221,8 @@ class EsiPyMarket(object):
 
         return {"buy":trimmed_buy, "sell":trimmed_sell}
 
-epm = EsiPyMarket()
-value = asyncio.run(epm.appraise(19722, [10000002, 10000069, 10000043, 10000030, 10000032]))
+ep = Esipraisal()
+value = asyncio.run(ep.appraise(19722, [10000002, 10000069, 10000043, 10000030, 10000032]))
 print(value)
 
 
