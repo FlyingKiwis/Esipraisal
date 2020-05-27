@@ -51,8 +51,9 @@ class Esipraisal(object):
         price_dicts = self.__to_price_dicts(orders, historical_value)
         buy_vol = price_dicts.get("buy_volume", 0)
         sell_vol = price_dicts.get("sell_volume", 0)
-        
-        if buy_vol < 10 or sell_vol < 10 or buy_vol*historical_value < 1e10 or sell_vol*historical_value < 1e10:
+        min_vol = self.__min_volume(historical_value)
+        print("buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
+        if buy_vol + sell_vol < min_vol:
             #Exit if volume is too low
             return None
 
@@ -72,6 +73,17 @@ class Esipraisal(object):
             prices.append(price)
 
         return np.average(prices, weights=volumes)
+
+    def __min_volume(self, historical_value):
+        if historical_value < 1e3:
+            return 1e5
+        if historical_value < 1e6:
+            return 1e4
+        if historical_value < 1e8:
+            return 1000
+        if historical_value < 1e9:
+            return 100
+        return 10
 
     async def __value_from_history(self, type_id, region_ids):
         async with Esi() as esi:
@@ -162,10 +174,8 @@ class Esipraisal(object):
             #Outlier filtering
             if filter_outliers:
                 if price > max_price:
-                    print("Outlier")
                     continue
                 if price < min_price:
-                    print("Outlier")
                     continue
 
             print("Processing {} of {} (Volume={})".format(n, n_orders, volume))
@@ -222,7 +232,7 @@ class Esipraisal(object):
         return {"buy":trimmed_buy, "sell":trimmed_sell}
 
 ep = Esipraisal()
-value = asyncio.run(ep.appraise(19722, [10000002, 10000069, 10000043, 10000030, 10000032]))
+value = asyncio.run(ep.appraise(9826, [10000002, 10000069, 10000043, 10000030, 10000032]))
 print(value)
 
 
