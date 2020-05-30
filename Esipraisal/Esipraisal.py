@@ -3,7 +3,9 @@ from Appraisal import Appraisal
 import asyncio
 import numpy as np
 import itertools
+import logging
 
+logger = logging.getLogger("Esipraisal")
 
 class Esipraisal(object):
 
@@ -55,7 +57,7 @@ class Esipraisal(object):
         buy_vol = price_dicts.get("buy_volume", 0)
         sell_vol = price_dicts.get("sell_volume", 0)
         min_vol = self.__min_volume(historical_value)
-        print("buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
+        logger.debug("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
         if buy_vol + sell_vol < min_vol:
             #Exit if volume is too low
             return None
@@ -177,11 +179,13 @@ class Esipraisal(object):
             #Outlier filtering
             if filter_outliers:
                 if price > max_price:
+                    logger.debug("Outlier (over): {}".format(price))
                     continue
                 if price < min_price:
+                    logger.debug("Outlier (under): {}".format(price))
                     continue
 
-            print("Processing {} of {} (Volume={})".format(n, n_orders, volume))
+            logger.debug("Processing {} of {} (Volume={})".format(n, n_orders, volume))
             n += 1
 
             if buy_order:
