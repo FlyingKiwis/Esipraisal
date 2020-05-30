@@ -234,8 +234,3 @@ class Esipraisal(object):
 
         return {"buy":trimmed_buy, "sell":trimmed_sell}
 
-ep = Esipraisal()
-value = asyncio.run(ep.appraise(9826, [10000002, 10000069, 10000043, 10000030, 10000032]))
-print(value)
-
-
