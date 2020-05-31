@@ -10,8 +10,9 @@ Esipraisal is a simple tool designed to figure out the value of an item ("type" 
 
 
 ```python
-import Esipraisal
-Esipraisal.appraise(type_id, region_ids)
+from Esipraisal import Esipraisal
+ep = Esipraisal()
+ep.appraise(type_id, region_ids)
 ```
 
 

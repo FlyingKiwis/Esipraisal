@@ -1,5 +1,5 @@
-from esi import Esi
-from Appraisal import Appraisal
+from .esi import Esi
+from .Appraisal import Appraisal
 import asyncio
 import numpy as np
 import itertools
@@ -11,7 +11,8 @@ class Esipraisal(object):
 
     def __init__(self):
         self.__price_table = None
-
+        self.ops = Esi()
+        self.client = Esi.get_client()
 
     async def appraise(self, type_id, region_ids):
         app = Appraisal()
@@ -50,7 +51,7 @@ class Esipraisal(object):
     
     async def __value_from_orders(self, type_id, region_ids, historical_value):
         
-        async with Esi() as esi:
+        async with self.client.session() as esi:
             orders = await self.__fetch_orders(esi, type_id, region_ids)
 
         price_dicts = self.__to_price_dicts(orders, historical_value)
@@ -91,10 +92,10 @@ class Esipraisal(object):
         return 10
 
     async def __value_from_history(self, type_id, region_ids):
-        async with Esi() as esi:
+        async with self.client.session() as esi:
             region_futures = []
             for region in region_ids:
-                region_futures.append(esi.get_market_history_by_region(region, type_id))
+                region_futures.append(self.ops.get_market_history_by_region(esi, region, type_id))
 
             results = await asyncio.gather(*region_futures)
 
@@ -129,8 +130,8 @@ class Esipraisal(object):
 
     async def __value_from_ccp(self, type_id):
         if self.__price_table is None:
-            async with Esi() as esi:
-                self.__price_table = esi.get_prices()
+            async with self.client.session() as esi:
+                self.__price_table = self.ops.get_prices(esi)
         
         for item_price in self.__price_table:
             if item_price.get("type_id") == type_id:
@@ -142,7 +143,7 @@ class Esipraisal(object):
 
         region_futures = []
         for region in region_ids:
-            region_futures.append(esi.get_orders_by_region(region, type_id))
+            region_futures.append(self.ops.get_orders_by_region(esi, region, type_id))
 
         results = await asyncio.gather(*region_futures)
 

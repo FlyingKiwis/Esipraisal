@@ -5,5 +5,5 @@ except ImportError:
 
     pass
 
-__version__ = '0.0.2'
-__name__ = 'EsiPyMarket'
+__version__ = '0.0.3'
+__name__ = 'Esipraisal'

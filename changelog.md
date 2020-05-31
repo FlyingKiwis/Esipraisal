@@ -1,3 +1,7 @@
+### 0.0.3
+
+- Upgrade EsiPysi
+
 ### 0.0.2
 
 - Tidy up, change print to logging

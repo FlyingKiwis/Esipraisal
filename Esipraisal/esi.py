@@ -4,25 +4,15 @@ import asyncio
 import json
 import logging
 
-class Esi():
+class Esi(object):
     log = logging.getLogger(__name__)
-    
-    def __init__(self, loop=None):
-        self.last_error = None
+
+    @classmethod
+    def get_client(cls):
         esi_url = "https://esi.evetech.net/_latest/swagger.json?datasource=tranquility"
-        ua = "EsiPyMarket - IGN: Flying Kiwi Sertan"
-        if loop is None:
-            self.client = EsiPysi(esi_url, user_agent=ua)
-        else:
-            self.client = EsiPysi(esi_url, loop=loop, user_agent=ua)
-
-    async def __aenter__(self):
-        await self.client.start_session()
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.client.stop_session()
-
+        ua = "Esipraisal - IGN: Flying Kiwi Sertan"
+        return EsiPysi(esi_url, user_agent=ua)
+    
     async def __do_request(self, op, parameters={}, json=True):
         if op is None:
             self.log.error("No operation provided, did the ESI spec change?")
@@ -43,10 +33,10 @@ class Esi():
             return result
         return None
 
-    def __get_op(self, op_name):
+    def __get_op(self, session, op_name):
         op = None
         try:
-            op = self.client.get_operation(op_name)
+            op = session.get_operation(op_name)
         except Exception:
             self.log.exception("Could not get op: {}".format(op_name))
             return
@@ -55,16 +45,16 @@ class Esi():
         else:
             return op
     
-    async def get_orders_by_region(self, region_id, type_id):
-        op = self.__get_op("get_markets_region_id_orders")
+    async def get_orders_by_region(self, session, region_id, type_id):
+        op = self.__get_op(session, "get_markets_region_id_orders")
         params = {"region_id": region_id, "type_id": type_id, "order_type":"all"}
         return await self.__do_request(op, params)
 
-    async def get_market_history_by_region(self, region_id, type_id):
-        op = self.__get_op("get_markets_region_id_history")
+    async def get_market_history_by_region(self, session, region_id, type_id):
+        op = self.__get_op(session, "get_markets_region_id_history")
         params = {"region_id": region_id, "type_id": type_id}
         return await self.__do_request(op, params)
 
-    async def get_prices(self):
-        op = self.__get_op("get_markets_prices")
+    async def get_prices(self, session):
+        op = self.__get_op(session, "get_markets_prices")
         return await self.__do_request(op, {})
