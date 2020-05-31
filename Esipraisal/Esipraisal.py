@@ -159,9 +159,6 @@ class Esipraisal(object):
         
         logger.warning("Could not get price type={}".format(type_id))
 
-
-        
-
     #Fetch orders from region(s) using ESI
     async def __fetch_orders(self, esi, type_id, region_ids):
 
