@@ -1,3 +1,7 @@
+### 0.0.6
+
+- Fix numpy average issue
+
 ### 0.0.5
 
 - Fix prices from CCP

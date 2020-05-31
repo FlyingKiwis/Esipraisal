@@ -78,6 +78,9 @@ class Esipraisal(object):
             volumes.append(volume)
             prices.append(price)
 
+        if np.sum(volumes) == 0:
+            return None
+
         return np.average(prices, weights=volumes)
 
     def __min_volume(self, historical_value):
