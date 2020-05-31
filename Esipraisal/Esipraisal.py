@@ -61,7 +61,7 @@ class Esipraisal(object):
         buy_vol = price_dicts.get("buy_volume", 0)
         sell_vol = price_dicts.get("sell_volume", 0)
         min_vol = self.__min_volume(ccp_value)
-        print("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
+        logger.debug("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
         if buy_vol + sell_vol < min_vol:
             #Exit if volume is too low
             return None
@@ -224,8 +224,8 @@ class Esipraisal(object):
 
     def __is_outlier(self, price, average_value):
         #These should be pretty borad outliers just want to filter out the very low/high
-        max_price = average_value * 1.5
-        min_price = average_value * 0.5
+        max_price = average_value * 1.75
+        min_price = average_value * 0.25
 
         if price > max_price:
             logger.debug("Outlier (over): {}".format(price))
