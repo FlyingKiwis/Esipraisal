@@ -23,10 +23,7 @@ class Esipraisal(object):
         ccp_val = await self.__value_from_ccp(type_id)
 
         #Method 1: Orders on market
-        if ccp_val is None:
-            order_value = None
-        else:
-            order_value = await self.__value_from_orders(type_id, region_ids, ccp_val)
+        order_value = await self.__value_from_orders(type_id, region_ids, ccp_val)
 
         if order_value is not None:
             app.source = "Market Orders"
@@ -150,13 +147,19 @@ class Esipraisal(object):
         return wavg
 
     async def __value_from_ccp(self, type_id):
-        if self.__price_table is None:
-            async with self.client.session() as esi:
-                self.__price_table = await self.ops.get_prices(esi)
+        async with self.client.session() as esi:
+            self.__price_table = await self.ops.get_prices(esi)
         
         for item_price in self.__price_table:
-            if item_price.get("type_id") == type_id:
-                return item_price.get("average_price")
+            if int(item_price.get("type_id")) == int(type_id):
+                price = item_price.get("average_price")
+                if price is None:
+                    price = item_price.get("adjusted_price")
+                return price
+        
+        logger.warning("Could not get price type={}".format(type_id))
+
+
         
 
     #Fetch orders from region(s) using ESI

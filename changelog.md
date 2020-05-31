@@ -1,3 +1,7 @@
+### 0.0.9
+
+- FIXED: Issue with CCP value
+
 ### 0.0.8
 
 - FIXED: Issue when CCP's value is none
