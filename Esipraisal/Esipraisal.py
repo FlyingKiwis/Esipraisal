@@ -131,7 +131,7 @@ class Esipraisal(object):
     async def __value_from_ccp(self, type_id):
         if self.__price_table is None:
             async with self.client.session() as esi:
-                self.__price_table = self.ops.get_prices(esi)
+                self.__price_table = await self.ops.get_prices(esi)
         
         for item_price in self.__price_table:
             if item_price.get("type_id") == type_id:

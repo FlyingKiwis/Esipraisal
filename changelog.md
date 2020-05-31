@@ -1,3 +1,7 @@
+### 0.0.5
+
+- Fix prices from CCP
+
 ### 0.0.4
 
 - Add import shortcut
