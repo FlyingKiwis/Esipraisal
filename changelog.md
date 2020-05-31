@@ -1,3 +1,7 @@
+### 0.0.7
+
+- Adjust appraisal
+
 ### 0.0.6
 
 - Fix numpy average issue

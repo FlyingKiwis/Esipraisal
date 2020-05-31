@@ -3,7 +3,7 @@ from Esipraisal.Esipraisal import Esipraisal
 
 ep = Esipraisal()
 region_ids=[10000002, 10000043, 10000032, 10000016, 10000042, 10000030, 10000064, 10000033, 10000068, 10000020]
-app = asyncio.run(ep.appraise(44992, region_ids))
+app = asyncio.run(ep.appraise(20727, region_ids))
 #Plex
 
 print(app)

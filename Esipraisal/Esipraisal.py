@@ -4,6 +4,7 @@ import asyncio
 import numpy as np
 import itertools
 import logging
+from datetime import datetime, timedelta, date
 
 logger = logging.getLogger("Esipraisal")
 
@@ -19,12 +20,13 @@ class Esipraisal(object):
         app.type = type_id
         app.region_list = region_ids
 
+        ccp_val = await self.__value_from_ccp(type_id)
+
         #Method 1: Orders on market
-        hist_avg = await self.__value_from_history(type_id, region_ids)
-        if hist_avg is None:
+        if ccp_val is None:
             order_value = None
         else:
-            order_value = await self.__value_from_orders(type_id, region_ids, hist_avg)
+            order_value = await self.__value_from_orders(type_id, region_ids, ccp_val)
 
         if order_value is not None:
             app.source = "Market Orders"
@@ -32,6 +34,7 @@ class Esipraisal(object):
             return app
 
         #Method 2: Historical average
+        hist_avg = await self.__value_from_history(type_id, region_ids, ccp_val)
         if hist_avg is not None:
             app.source = "Historical Orders"
             app.value = hist_avg
@@ -49,16 +52,16 @@ class Esipraisal(object):
         app.value = None
         return app
     
-    async def __value_from_orders(self, type_id, region_ids, historical_value):
+    async def __value_from_orders(self, type_id, region_ids, ccp_value):
         
         async with self.client.session() as esi:
             orders = await self.__fetch_orders(esi, type_id, region_ids)
 
-        price_dicts = self.__to_price_dicts(orders, historical_value)
+        price_dicts = self.__to_price_dicts(orders, ccp_value)
         buy_vol = price_dicts.get("buy_volume", 0)
         sell_vol = price_dicts.get("sell_volume", 0)
-        min_vol = self.__min_volume(historical_value)
-        logger.debug("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
+        min_vol = self.__min_volume(ccp_value)
+        print("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
         if buy_vol + sell_vol < min_vol:
             #Exit if volume is too low
             return None
@@ -84,17 +87,18 @@ class Esipraisal(object):
         return np.average(prices, weights=volumes)
 
     def __min_volume(self, historical_value):
-        if historical_value < 1e3:
-            return 1e5
+        if historical_value is None:
+            return 100
+
         if historical_value < 1e6:
-            return 1e4
+            return 10000
         if historical_value < 1e8:
             return 1000
         if historical_value < 1e9:
             return 100
         return 10
 
-    async def __value_from_history(self, type_id, region_ids):
+    async def __value_from_history(self, type_id, region_ids, ccp_val=-1):
         async with self.client.session() as esi:
             region_futures = []
             for region in region_ids:
@@ -112,20 +116,38 @@ class Esipraisal(object):
             if len(result) < 1:
                 continue
 
-            last = result[-1]
-            price = last.get("average")
-            volume = last.get("volume", 0)
+            valid = False
+            indx = len(result) - 1
+            while indx > 0 and not valid:
+                data = result[indx]
+                indx -= 1
 
-            if price is None:
-                continue
+                price = data.get("average")
+                volume = data.get("volume", 0)
+                date_str = data.get("date", '1900-01-01')
+                data_date = datetime.strptime(date_str, '%Y-%m-%d')
 
-            if volume <= 0:
-                continue
+                if data_date + timedelta(days=14) < datetime.utcnow():
+                    #Data is too old
+                    break
 
-            prices.append(price)
-            volumes.append(volume)
+                if ccp_val > 0:
+                    if self.__is_outlier(price, ccp_val):
+                        continue
 
-        if len(prices) < 1:
+                if price is None:
+                    continue
+
+                if volume <= 0:
+                    continue
+
+                valid = True
+
+            if valid:
+                prices.append(price)
+                volumes.append(volume)
+
+        if np.sum(volumes) < self.__min_volume(ccp_val):
             return None
 
         wavg = np.average(prices, weights=volumes)
@@ -160,7 +182,7 @@ class Esipraisal(object):
         return combined_results
 
     #Get an array of prices for use with statistical analysis
-    def __to_price_dicts(self, orders_list, recent_average=-1):
+    def __to_price_dicts(self, orders_list, ccp_val=-1):
         n_orders = len(orders_list)
         n = 1
         
@@ -168,10 +190,7 @@ class Esipraisal(object):
         sell_orders = {}
         buy_volume = 0
         sell_volume = 0
-        filter_outliers = recent_average > 0
-        #These should be pretty borad outliers just want to filter out the very low/high
-        max_price = recent_average * 1.5
-        min_price = recent_average * 0.5
+        filter_outliers = ccp_val > 0
 
 
         for order in orders_list:
@@ -182,11 +201,7 @@ class Esipraisal(object):
 
             #Outlier filtering
             if filter_outliers:
-                if price > max_price:
-                    logger.debug("Outlier (over): {}".format(price))
-                    continue
-                if price < min_price:
-                    logger.debug("Outlier (under): {}".format(price))
+                if self.__is_outlier(price, ccp_val):
                     continue
 
             logger.debug("Processing {} of {} (Volume={})".format(n, n_orders, volume))
@@ -207,38 +222,19 @@ class Esipraisal(object):
         
         return {"buy":buy_orders, "buy_volume": buy_volume, "sell":sell_orders, "sell_volume": sell_volume}
 
-    def __sort_trim_orders(self, price_dicts):
-        buy_dict = price_dicts.get("buy")
-        buy_volume = price_dicts.get("buy_volume")
-        buy_trim_volume = min(max(100, round(buy_volume*0.05)), buy_volume)
-        sorted_buy = dict(sorted(buy_dict.items(), reverse=True))
+    def __is_outlier(self, price, average_value):
+        #These should be pretty borad outliers just want to filter out the very low/high
+        max_price = average_value * 1.5
+        min_price = average_value * 0.5
 
-        current_vol = 0
-        indx = 0
-        trimmed_buy = dict()
-        while current_vol < buy_trim_volume and indx < len(sorted_buy):
-            vol = list(sorted_buy.values())[indx]
-            if vol + current_vol > buy_trim_volume:
-                vol = buy_trim_volume - current_vol
-            trimmed_buy[list(sorted_buy.keys())[indx]] = vol
-            current_vol += vol
-            indx += 1
+        if price > max_price:
+            logger.debug("Outlier (over): {}".format(price))
+            return True
+        if price < min_price:
+            logger.debug("Outlier (under): {}".format(price))
+            return True
 
-        sell_dict = price_dicts.get("sell")
-        sell_volume = price_dicts.get("sell_volume")
-        sell_trim_volume = min(max(100, round(sell_volume*0.05)), sell_volume)
-        sorted_sell = dict(sorted(sell_dict.items()))
+        return False
 
-        current_vol = 0
-        indx = 0
-        trimmed_sell = dict()
-        while current_vol < sell_trim_volume and indx < len(sorted_sell):
-            vol = list(sorted_sell.values())[indx]
-            if vol + current_vol > buy_trim_volume:
-                vol = buy_trim_volume - current_vol
-            trimmed_sell[list(sorted_sell.keys())[indx]] = vol
-            current_vol += vol
-            indx += 1
 
-        return {"buy":trimmed_buy, "sell":trimmed_sell}
 
