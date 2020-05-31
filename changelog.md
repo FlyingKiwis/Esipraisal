@@ -1,3 +1,7 @@
+### 0.0.4
+
+- Add import shortcut
+
 ### 0.0.3
 
 - Upgrade EsiPysi
