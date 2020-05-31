@@ -41,8 +41,6 @@ class Esipraisal(object):
             return app
 
         #Method 3:  CCP's value
-        ccp_val = await self.__value_from_ccp(type_id)
-
         if ccp_val is not None:
             app.source = "CCP"
             app.value = ccp_val
@@ -66,9 +64,8 @@ class Esipraisal(object):
             #Exit if volume is too low
             return None
 
-        sorted_orders = self.__sort_trim_orders(price_dicts)
-        buy_dict = sorted_orders.get("buy")
-        sell_dict = sorted_orders.get("sell")
+        buy_dict = price_dicts.get("buy")
+        sell_dict = price_dicts.get("sell")
         
         volumes = []
         prices = []
@@ -98,7 +95,7 @@ class Esipraisal(object):
             return 100
         return 10
 
-    async def __value_from_history(self, type_id, region_ids, ccp_val=-1):
+    async def __value_from_history(self, type_id, region_ids, ccp_val):
         async with self.client.session() as esi:
             region_futures = []
             for region in region_ids:
@@ -131,9 +128,8 @@ class Esipraisal(object):
                     #Data is too old
                     break
 
-                if ccp_val > 0:
-                    if self.__is_outlier(price, ccp_val):
-                        continue
+                if self.__is_outlier(price, ccp_val):
+                    continue
 
                 if price is None:
                     continue
@@ -182,7 +178,7 @@ class Esipraisal(object):
         return combined_results
 
     #Get an array of prices for use with statistical analysis
-    def __to_price_dicts(self, orders_list, ccp_val=-1):
+    def __to_price_dicts(self, orders_list, ccp_val):
         n_orders = len(orders_list)
         n = 1
         
@@ -190,7 +186,6 @@ class Esipraisal(object):
         sell_orders = {}
         buy_volume = 0
         sell_volume = 0
-        filter_outliers = ccp_val > 0
 
 
         for order in orders_list:
@@ -200,9 +195,8 @@ class Esipraisal(object):
             volume = order.get("volume_remain")
 
             #Outlier filtering
-            if filter_outliers:
-                if self.__is_outlier(price, ccp_val):
-                    continue
+            if self.__is_outlier(price, ccp_val):
+                continue
 
             logger.debug("Processing {} of {} (Volume={})".format(n, n_orders, volume))
             n += 1
@@ -223,6 +217,8 @@ class Esipraisal(object):
         return {"buy":buy_orders, "buy_volume": buy_volume, "sell":sell_orders, "sell_volume": sell_volume}
 
     def __is_outlier(self, price, average_value):
+        if average_value is None:
+            return False
         #These should be pretty borad outliers just want to filter out the very low/high
         max_price = average_value * 1.75
         min_price = average_value * 0.25

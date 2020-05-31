@@ -1,3 +1,7 @@
+### 0.0.8
+
+- FIXED: Issue when CCP's value is none
+
 ### 0.0.7
 
 - Adjust appraisal
