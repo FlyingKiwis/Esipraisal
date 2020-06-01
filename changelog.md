@@ -1,3 +1,8 @@
+### 0.1.0
+
+- This is the first "minimum viable" release.
+- Tweaked how historic orders are calculated to include up to a week of history for each region.
+
 ### 0.0.9
 
 - FIXED: Issue with CCP value

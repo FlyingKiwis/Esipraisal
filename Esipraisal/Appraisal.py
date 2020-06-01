@@ -9,4 +9,4 @@ class Appraisal(object):
         self.region_list = None
 
     def __str__(self):
-        return "Value: {}, Source: {}\nFor type={} in regions={}".format(self.value, self.source, self.type, self.region_list)
+        return "Value: {}, Source: {} type={} regions={}".format(self.value, self.source, self.type, self.region_list)

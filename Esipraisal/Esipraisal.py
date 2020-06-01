@@ -82,11 +82,9 @@ class Esipraisal(object):
 
     def __min_volume(self, historical_value):
         if historical_value is None:
-            return 100
+            return 50
 
         if historical_value < 1e6:
-            return 10000
-        if historical_value < 1e8:
             return 1000
         if historical_value < 1e9:
             return 100
@@ -110,10 +108,11 @@ class Esipraisal(object):
             if len(result) < 1:
                 continue
 
-            valid = False
+            valid_count = 0
             indx = len(result) - 1
-            while indx > 0 and not valid:
+            while indx > 0 and valid_count < 7:
                 data = result[indx]
+                logger.debug(data)
                 indx -= 1
 
                 price = data.get("average")
@@ -121,11 +120,12 @@ class Esipraisal(object):
                 date_str = data.get("date", '1900-01-01')
                 data_date = datetime.strptime(date_str, '%Y-%m-%d')
 
-                if data_date + timedelta(days=14) < datetime.utcnow():
+                if data_date + timedelta(days=30) < datetime.utcnow():
                     #Data is too old
                     break
 
                 if self.__is_outlier(price, ccp_val):
+                    logger.debug("outlier: price={} ccp_val={}".format(price, ccp_val))
                     continue
 
                 if price is None:
@@ -134,13 +134,13 @@ class Esipraisal(object):
                 if volume <= 0:
                     continue
 
-                valid = True
-
-            if valid:
                 prices.append(price)
                 volumes.append(volume)
+                valid_count += 1
+
 
         if np.sum(volumes) < self.__min_volume(ccp_val):
+            logger.debug("Min vol not met: volume={} min vol={}".format(np.sum(volumes), self.__min_volume(ccp_val)))
             return None
 
         wavg = np.average(prices, weights=volumes)
