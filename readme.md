@@ -17,6 +17,7 @@ ep.appraise(type_id, region_ids)
 
 
 type_id = The id of the type you want to get the value of
+
 region_ids = a list of region ids in which you want to pull order information from.  Usefull if you say only want mineral prices in Delve.
 
 
