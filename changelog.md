@@ -1,3 +1,7 @@
+### 0.1.1
+
+- Added volume info and buy/sell breakout when avaliable
+
 ### 0.1.0
 
 - This is the first "minimum viable" release.

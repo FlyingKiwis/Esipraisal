@@ -16,39 +16,35 @@ class Esipraisal(object):
         self.client = Esi.get_client()
 
     async def appraise(self, type_id, region_ids):
-        app = Appraisal()
-        app.type = type_id
-        app.region_list = region_ids
-
         ccp_val = await self.__value_from_ccp(type_id)
 
         #Method 1: Orders on market
-        order_value = await self.__value_from_orders(type_id, region_ids, ccp_val)
+        order_value = await self.__value_from_orders(type_id, region_ids, ccp_val.value)
 
         if order_value is not None:
-            app.source = "Market Orders"
-            app.value = order_value
-            return app
+            return order_value
 
         #Method 2: Historical average
-        hist_avg = await self.__value_from_history(type_id, region_ids, ccp_val)
-        if hist_avg is not None:
-            app.source = "Historical Orders"
-            app.value = hist_avg
-            return app
+        hist_val = await self.__value_from_history(type_id, region_ids, ccp_val)
+
+        if hist_val is not None:
+            return hist_val
 
         #Method 3:  CCP's value
         if ccp_val is not None:
-            app.source = "CCP"
-            app.value = ccp_val
-            return app
+            ccp_val.region_list = region_ids
+            return ccp_val
 
+        app = Appraisal()
         app.source = "No Valid Source"
-        app.value = None
         return app
     
     async def __value_from_orders(self, type_id, region_ids, ccp_value):
-        
+        app = Appraisal()
+        app.type = type_id
+        app.region_list = region_ids
+        app.source = "Market Orders"
+
         async with self.client.session() as esi:
             orders = await self.__fetch_orders(esi, type_id, region_ids)
 
@@ -56,7 +52,7 @@ class Esipraisal(object):
         buy_vol = price_dicts.get("buy_volume", 0)
         sell_vol = price_dicts.get("sell_volume", 0)
         min_vol = self.__min_volume(ccp_value)
-        logger.debug("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
+        logger.info("Volumes: buy = {} sell = {} min = {}".format(buy_vol, sell_vol, min_vol))
         if buy_vol + sell_vol < min_vol:
             #Exit if volume is too low
             return None
@@ -64,21 +60,49 @@ class Esipraisal(object):
         buy_dict = price_dicts.get("buy")
         sell_dict = price_dicts.get("sell")
         
+        buy_vols = []
+        buy_prices = []
+
+        sell_vols = []
+        sell_prices = []
+
         volumes = []
         prices = []
         
         for price, volume in buy_dict.items():
             volumes.append(volume)
             prices.append(price)
+            buy_vols.append(volume)
+            buy_prices.append(price)
 
         for price, volume in sell_dict.items():
             volumes.append(volume)
             prices.append(price)
+            sell_vols.append(volume)
+            sell_prices.append(price)
 
-        if np.sum(volumes) == 0:
+        vol = np.sum(volumes)
+        if vol <= 0:
             return None
+        
+        buy_vol = np.sum(buy_vols) 
+        if buy_vol <= 0:
+            return None
+        
+        sell_vol = np.sum(sell_vols)
+        if sell_vol <= 0:
+            return None
+         
+        app.value = np.average(prices, axis=0, weights=volumes)
+        print("{} vs {}".format(len(buy_prices), len(buy_vols)))
+        app.buy_value = np.average(buy_prices, axis=0, weights=buy_vols)
+        app.sell_value = np.average(sell_prices, axis=0, weights=sell_vols)
 
-        return np.average(prices, weights=volumes)
+        app.volume = vol
+        app.buy_volume = buy_vol
+        app.sell_volume = sell_vol
+
+        return app
 
     def __min_volume(self, historical_value):
         if historical_value is None:
@@ -91,6 +115,11 @@ class Esipraisal(object):
         return 10
 
     async def __value_from_history(self, type_id, region_ids, ccp_val):
+        app = Appraisal()
+        app.type = type_id
+        app.region_list = region_ids
+        app.source = "Historical Orders"
+
         async with self.client.session() as esi:
             region_futures = []
             for region in region_ids:
@@ -112,7 +141,7 @@ class Esipraisal(object):
             indx = len(result) - 1
             while indx > 0 and valid_count < 7:
                 data = result[indx]
-                logger.debug(data)
+                logger.info(data)
                 indx -= 1
 
                 price = data.get("average")
@@ -125,7 +154,7 @@ class Esipraisal(object):
                     break
 
                 if self.__is_outlier(price, ccp_val):
-                    logger.debug("outlier: price={} ccp_val={}".format(price, ccp_val))
+                    logger.info("outlier: price={} ccp_val={}".format(price, ccp_val))
                     continue
 
                 if price is None:
@@ -138,15 +167,21 @@ class Esipraisal(object):
                 volumes.append(volume)
                 valid_count += 1
 
-
-        if np.sum(volumes) < self.__min_volume(ccp_val):
-            logger.debug("Min vol not met: volume={} min vol={}".format(np.sum(volumes), self.__min_volume(ccp_val)))
+        vol = np.sum(volumes)
+        if vol < self.__min_volume(ccp_val):
+            logger.info("Min vol not met: volume={} min vol={}".format(vol, self.__min_volume(ccp_val)))
             return None
 
-        wavg = np.average(prices, weights=volumes)
-        return wavg
+        app.value = np.average(prices, weights=volumes)
+        app.volume = vol
+
+        return app
 
     async def __value_from_ccp(self, type_id):
+        app = Appraisal()
+        app.type = type_id
+        app.source = "CCP"
+
         async with self.client.session() as esi:
             self.__price_table = await self.ops.get_prices(esi)
         
@@ -155,9 +190,11 @@ class Esipraisal(object):
                 price = item_price.get("average_price")
                 if price is None:
                     price = item_price.get("adjusted_price")
-                return price
+                app.value = price
+                return app
         
         logger.warning("Could not get price type={}".format(type_id))
+        return None
 
     #Fetch orders from region(s) using ESI
     async def __fetch_orders(self, esi, type_id, region_ids):

@@ -29,7 +29,14 @@ The Appraisal object includes the following info:
 * type = the type_id that was appraised
 * region_list = the list of region_ids from where the data was pulled
 * value = the estimated value of the type
+* volume = volume of orders
+* buy_value = average value of "buy" orders
+* sell_value = average value of "sell" orders
+* buy_volume = volume of "buy" orders
+* sell_volume = volume of "sell" orders
 * source = How the estimate was determined:
     * Market Orders - Most common, from market orders currently active
     * Historical Orders - Past orders which were recently completed, only used if there are not enough market orders for accurate data
     * CCP - CCP's estimate, only used if the above 2 are not valid
+
+Note: volumes listed may be different than those currently listed on market as the volume is after outlier removal has been done
