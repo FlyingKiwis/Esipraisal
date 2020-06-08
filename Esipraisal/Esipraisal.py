@@ -18,15 +18,19 @@ class Esipraisal(object):
 
     async def appraise(self, type_id, region_ids):
         ccp_val = await self.__value_from_ccp(type_id)
+        if ccp_val is None:
+            estimated_val = None
+        else:
+            estimated_val = ccp_val.value
 
         #Method 1: Orders on market
-        order_value = await self.__value_from_orders(type_id, region_ids, ccp_val.value)
+        order_value = await self.__value_from_orders(type_id, region_ids, estimated_val)
 
         if order_value is not None:
             return order_value
 
         #Method 2: Historical average
-        hist_val = await self.__value_from_history(type_id, region_ids, ccp_val.value)
+        hist_val = await self.__value_from_history(type_id, region_ids, estimated_val)
 
         if hist_val is not None:
             return hist_val

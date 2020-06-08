@@ -1,3 +1,7 @@
+### 0.1.5
+
+- Fixed issue with estimated value
+
 ### 0.1.4
 
 - Fix syntax in historical value
