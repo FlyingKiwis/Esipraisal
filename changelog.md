@@ -1,3 +1,7 @@
+### 0.1.2
+
+- Changed source into an enum
+
 ### 0.1.1
 
 - Added volume info and buy/sell breakout when avaliable

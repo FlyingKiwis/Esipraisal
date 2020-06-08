@@ -35,7 +35,7 @@ The Appraisal object includes the following info:
 * sell_value = average value of "sell" orders
 * buy_volume = volume of "buy" orders
 * sell_volume = volume of "sell" orders
-* source = How the estimate was determined:
+* source = How the estimate was determined (enum):
     * Market Orders - Most common, from market orders currently active
     * Historical Orders - Past orders which were recently completed, only used if there are not enough market orders for accurate data
     * CCP - CCP's estimate, only used if the above 2 are not valid

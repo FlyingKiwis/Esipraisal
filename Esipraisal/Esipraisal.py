@@ -1,5 +1,6 @@
 from .esi import Esi
 from .Appraisal import Appraisal
+from .Source import Source
 import asyncio
 import numpy as np
 import itertools
@@ -36,14 +37,14 @@ class Esipraisal(object):
             return ccp_val
 
         app = Appraisal()
-        app.source = "No Valid Source"
+        app.source = Source.Invalid
         return app
     
     async def __value_from_orders(self, type_id, region_ids, ccp_value):
         app = Appraisal()
         app.type = type_id
         app.region_list = region_ids
-        app.source = "Market Orders"
+        app.source = Source.MarketOrders
 
         async with self.client.session() as esi:
             orders = await self.__fetch_orders(esi, type_id, region_ids)
@@ -94,7 +95,6 @@ class Esipraisal(object):
             return None
          
         app.value = np.average(prices, axis=0, weights=volumes)
-        print("{} vs {}".format(len(buy_prices), len(buy_vols)))
         app.buy_value = np.average(buy_prices, axis=0, weights=buy_vols)
         app.sell_value = np.average(sell_prices, axis=0, weights=sell_vols)
 
@@ -118,7 +118,7 @@ class Esipraisal(object):
         app = Appraisal()
         app.type = type_id
         app.region_list = region_ids
-        app.source = "Historical Orders"
+        app.source = Source.HistoricalOrders
 
         async with self.client.session() as esi:
             region_futures = []
@@ -180,7 +180,7 @@ class Esipraisal(object):
     async def __value_from_ccp(self, type_id):
         app = Appraisal()
         app.type = type_id
-        app.source = "CCP"
+        app.source = Source.CCP
 
         async with self.client.session() as esi:
             self.__price_table = await self.ops.get_prices(esi)

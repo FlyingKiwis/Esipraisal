@@ -17,4 +17,4 @@ class Appraisal(object):
         self.sell_volume = None
 
     def __str__(self):
-        return "Value={} Volume={} Source: {} type={} regions={}\nBuy: price={} volume={}\nSell: price={} volume={}".format(self.value, self.volume, self.source, self.type, self.region_list, self.buy_value, self.buy_volume, self.sell_value, self.sell_volume)
+        return "Value={} Volume={} Source: {} type={} regions={}\nBuy: price={} volume={}\nSell: price={} volume={}".format(self.value, self.volume, str(self.source), self.type, self.region_list, self.buy_value, self.buy_volume, self.sell_value, self.sell_volume)
