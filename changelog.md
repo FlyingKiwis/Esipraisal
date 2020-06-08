@@ -1,3 +1,11 @@
+### 0.1.4
+
+- Fix syntax in historical value
+
+### 0.1.3
+
+- Fix dependency issues
+
 ### 0.1.2
 
 - Changed source into an enum

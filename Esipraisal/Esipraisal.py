@@ -26,7 +26,7 @@ class Esipraisal(object):
             return order_value
 
         #Method 2: Historical average
-        hist_val = await self.__value_from_history(type_id, region_ids, ccp_val)
+        hist_val = await self.__value_from_history(type_id, region_ids, ccp_val.value)
 
         if hist_val is not None:
             return hist_val
@@ -104,13 +104,13 @@ class Esipraisal(object):
 
         return app
 
-    def __min_volume(self, historical_value):
-        if historical_value is None:
+    def __min_volume(self, estimated_value):
+        if estimated_value is None:
             return 50
 
-        if historical_value < 1e6:
+        if estimated_value < 1e6:
             return 1000
-        if historical_value < 1e9:
+        if estimated_value < 1e9:
             return 100
         return 10
 

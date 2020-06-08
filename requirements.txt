@@ -1,2 +1,2 @@
-EsiPysi==0.10.1
-numpy==1.18.4
+EsiPysi==0.10.2
+numpy>=1.18.0

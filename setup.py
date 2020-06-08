@@ -19,8 +19,8 @@ setup(
     url = "https://github.com/FlyingKiwis/Esipraisal",
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     install_requires=[
-        "EsiPysi==0.9.1",
-        "numpy==1.18.4",
+        "EsiPysi",
+        "numpy",
     ],
     long_description_content_type='text/markdown',
     long_description=long_description,
